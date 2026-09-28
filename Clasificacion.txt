@@ -1,0 +1,108 @@
+﻿Enriquecimiento de información del catálogo
+Como punto de partida, se utilizará la información actualmente disponible para cada equipo dentro del catálogo de Telcel:
+Marca + Modelo + Capacidad de almacenamiento
+Estos datos permitirán identificar de manera precisa cada dispositivo y funcionarán como entrada para un proceso de enriquecimiento de información mediante web scraping.
+A partir de este proceso se obtendrán características técnicas adicionales que no se encuentran disponibles en la información inicial del catálogo, pero que son necesarias para realizar una segmentación más precisa:
+* Procesador y familia del procesador
+* Memoria RAM física
+* Tecnología de pantalla (LCD, OLED, AMOLED, etc.)
+* Frecuencia de actualización de pantalla
+* Conectividad 5G
+* Capacidad de batería
+* Características especializadas para gaming, cuando estén disponibles
+El proceso de enriquecimiento permitirá convertir la información comercial disponible en Telcel en un catálogo técnicamente enriquecido, capaz de ser utilizado para generar diferentes Landing Pages de manera automatizada.
+Por ejemplo, si Telcel proporciona:
+Samsung | Galaxy XXXXX | 256 GB
+la solución utilizará estos datos para identificar el dispositivo y complementar automáticamente información como:
+Procesador | RAM | Pantalla | Hz | 5G | Batería | Características gaming
+Posteriormente, las reglas definidas determinarán en qué segmentos puede participar el equipo.
+Los segmentos no serán excluyentes
+Un mismo dispositivo podrá cumplir las reglas de diferentes segmentos y, por lo tanto, participar en diferentes Landing Pages.
+Por ejemplo:
+Smartphone X → Gama Alta + Gamer
+Esto es especialmente relevante para el segmento Gamer, ya que un dispositivo puede cumplir simultáneamente con las características de Gama Media o Gama Alta y con los criterios específicos definidos para gaming.
+Criterios de segmentación
+A partir de la información enriquecida, las reglas quedarían resumidas de esta manera:
+Gama Baja
+Smartphones orientados a funciones esenciales y uso cotidiano, como comunicación, redes sociales, navegación, reproducción multimedia y aplicaciones de baja o moderada exigencia.
+Procesador
+Familias de entrada, por ejemplo:
+* Qualcomm Snapdragon 4 Series, como Snapdragon 4 Gen 2, 4s Gen 2 o equivalentes.
+* MediaTek Dimensity 6000 Series, como Dimensity 6100+, 6300 o equivalentes.
+* MediaTek Helio de entrada, cuando corresponda.
+* UNISOC de entrada, como T606, T612, T616 o equivalentes.
+Qualcomm identifica su Snapdragon 4 Series como orientada a smartphones de entrada, mientras que MediaTek posiciona Dimensity 6000 como su familia de entrada dentro de su oferta 5G.
+Otras características
+* Hasta 4 GB de RAM física.
+* Almacenamiento generalmente entre 32 y 128 GB.
+* Pantalla LCD o tecnología equivalente.
+* Frecuencia de actualización generalmente entre 60 y 90 Hz.
+* Conectividad 5G opcional.
+Una característica superior de manera aislada —por ejemplo, 256 GB de almacenamiento— no será suficiente para considerar automáticamente al dispositivo dentro de una gama superior.
+
+
+
+
+Gama Media
+Smartphones que ofrecen un equilibrio entre rendimiento y prestaciones, capaces de ejecutar aplicaciones exigentes, multitarea y contenido multimedia con mayor fluidez.
+Procesador
+Familias de rendimiento intermedio, por ejemplo:
+* Qualcomm Snapdragon 6 Series, como Snapdragon 6 Gen 3, 6 Gen 4, 6 Gen 5 o equivalentes.
+* Qualcomm Snapdragon 7 Series, como Snapdragon 7s Gen 2, 7s Gen 3, 7 Gen 3 o equivalentes.
+* MediaTek Dimensity 7000 Series, como Dimensity 7025, 7050, 7200, 7300 o equivalentes.
+* MediaTek Dimensity 8000 Series en modelos que, por el resto de sus características, correspondan al segmento.
+Qualcomm posiciona Snapdragon 6 como su familia para smartphones de gama media y Snapdragon 7 para dispositivos de un nivel superior; por su parte, MediaTek sitúa Dimensity 7000 y 8000 por encima de su línea 6000.
+Otras características
+* Principalmente 6 a 8 GB de RAM física.
+* Almacenamiento de 128 GB o superior.
+* Pantallas LCD avanzadas, OLED o AMOLED.
+* Frecuencia de actualización de 90 Hz o superior.
+* Conectividad 5G preferentemente.
+Gama Alta
+Smartphones orientados a ofrecer alto rendimiento y una experiencia premium, incorporando procesadores de las familias de mayor capacidad y especificaciones superiores.
+Procesador
+Procesadores de alto rendimiento, por ejemplo:
+* Qualcomm Snapdragon 8 Series, como:
+* Snapdragon 8 Gen 3.
+* Snapdragon 8s Gen 4.
+* Snapdragon 8 Elite.
+* Snapdragon 8 Gen 5.
+* Snapdragon 8 Elite Gen 5.
+* MediaTek Dimensity 9000 Series, como Dimensity 9300, 9400 y sus variantes/equivalentes.
+* Samsung Exynos de gama superior, de acuerdo con la generación del dispositivo.
+* Google Tensor de generaciones recientes, cuando el conjunto de características del dispositivo corresponda al segmento.
+* Apple A-Series utilizados en generaciones recientes de iPhone.
+Qualcomm clasifica explícitamente a Snapdragon 8 como su familia para smartphones premium/flagship; MediaTek hace lo propio con Dimensity 9000.
+Otras características
+* 8 GB de RAM física o superior.
+* Almacenamiento generalmente de 256 GB o superior.
+* Pantalla OLED o AMOLED.
+* Frecuencia de actualización generalmente de 120 Hz o superior.
+* Conectividad 5G.
+La pertenencia a Gama Alta se determinará por el conjunto de características del dispositivo, evitando clasificarlo únicamente por una especificación aislada.
+Gamer
+Smartphones con características que permitan ofrecer una experiencia de alto rendimiento en videojuegos móviles, priorizando capacidad de procesamiento, memoria, fluidez de pantalla y rendimiento gráfico.
+Procesador
+Se considerarán principalmente procesadores con capacidad gráfica media-alta o alta, por ejemplo:
+* Qualcomm Snapdragon 8 Series:
+* Snapdragon 8 Gen 3.
+* Snapdragon 8s Gen 4.
+* Snapdragon 8 Elite.
+* Snapdragon 8 Gen 5.
+* Snapdragon 8 Elite Gen 5.
+* Determinados Qualcomm Snapdragon 7 Series de alto rendimiento, como las variantes 7+, cuando cumplan con el resto de los criterios.
+* MediaTek Dimensity 8000 Series de alto rendimiento.
+* MediaTek Dimensity 9000 Series.
+
+
+La familia Snapdragon 8 está expresamente orientada, entre otras experiencias premium, al mobile gaming; Snapdragon 7 también incorpora capacidades de gaming en un nivel inferior.
+Otras características
+* 8 GB de RAM física o superior.
+* Pantalla de 120 Hz o superior.
+* Batería de 5,000 mAh o superior, preferentemente.
+* Capacidad de ejecutar videojuegos de alta demanda.
+Como características complementarias: sistema de refrigeración dedicado, alta frecuencia de muestreo táctil, modo gaming o controles especializados.
+Relación con otras gamas
+Gamer será un segmento independiente, pero no excluyente.
+Un dispositivo que cumpla con los criterios de Gama Alta y Gamer podrá aparecer en ambas Landing Pages. De igual manera, determinados dispositivos de Gama Media con características suficientes para gaming podrán aparecer tanto en Gama Media como en Gamer.
+Esto permite que la selección responda al objetivo comercial de cada Landing Page sin limitar artificialmente un dispositivo a una sola categoría.
