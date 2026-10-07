@@ -66,7 +66,56 @@ async def health():
 
 @app.get("/catalog")
 async def list_segments():
-    return {"segments": [{"slug": segment.value, "name": rule.title} for segment, rule in RULES.items()]}
+    return {
+        "segments": [{"slug": segment.value, "name": rule.title} for segment, rule in RULES.items()],
+        "categories": [{"slug": slug, "name": name} for slug, name in CATEGORY_NAMES.items()],
+    }
+
+
+LimitQuery = Query(default=None, ge=1, le=50, description="Cantidad de productos (default CATALOG_SIZE)")
+CATEGORY_NAMES = {"celulares": "Celulares", "tablets": "Tablets", "smartwatches": "Smartwatches"}
+
+
+async def telcel_category(slug: str, query: str, limit: Optional[int]):
+    """Primeros productos de una categoría de Telcel, en su orden de relevancia y sin enriquecer."""
+    started = time.monotonic()
+    size = limit or settings.catalog_size
+    try:
+        # Se pide una página completa para que, tras quitar repetidos, sigan alcanzando los productos pedidos.
+        page = await app.state.telcel.get_page(0, query=query)
+    except TelcelUnavailableError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    products, seen = [], set()
+    for product in page.products:
+        key = listing_key(product)
+        if key not in seen:
+            seen.add(key)
+            products.append(product)
+    products = products[:size]
+    return {
+        "category": slug,
+        "categoryName": CATEGORY_NAMES[slug],
+        "total": len(products),
+        "elapsedSeconds": round(time.monotonic() - started, 3),
+        "products": products,
+    }
+
+
+# Estas rutas fijas deben registrarse antes de /catalog/{segment}, o FastAPI las tomaría como un segmento.
+@app.get("/catalog/celulares")
+async def celulares(limit: Optional[int] = LimitQuery):
+    return await telcel_category("celulares", settings.telcel_query, limit)
+
+
+@app.get("/catalog/tablets")
+async def tablets(limit: Optional[int] = LimitQuery):
+    return await telcel_category("tablets", settings.telcel_tablets_query, limit)
+
+
+@app.get("/catalog/smartwatches")
+async def smartwatches(limit: Optional[int] = LimitQuery):
+    return await telcel_category("smartwatches", settings.telcel_smartwatches_query, limit)
 
 
 @app.get("/catalog/{segment}")
@@ -92,47 +141,3 @@ async def catalog(
     if debug:
         response["debug"] = result.debug
     return response
-
-
-LimitQuery = Query(default=None, ge=1, le=50, description="Cantidad de productos (default CATALOG_SIZE)")
-
-
-async def telcel_category(slug: str, name: str, query: str, limit: Optional[int]):
-    """Primeros productos de una categoría de Telcel, en su orden de relevancia y sin enriquecer."""
-    started = time.monotonic()
-    size = limit or settings.catalog_size
-    try:
-        # Se pide una página completa para que, tras quitar repetidos, sigan alcanzando los productos pedidos.
-        page = await app.state.telcel.get_page(0, query=query)
-    except TelcelUnavailableError as exc:
-        raise HTTPException(status_code=502, detail=str(exc))
-
-    products, seen = [], set()
-    for product in page.products:
-        key = listing_key(product)
-        if key not in seen:
-            seen.add(key)
-            products.append(product)
-    products = products[:size]
-    return {
-        "category": slug,
-        "categoryName": name,
-        "total": len(products),
-        "elapsedSeconds": round(time.monotonic() - started, 3),
-        "products": products,
-    }
-
-
-@app.get("/celulares")
-async def celulares(limit: Optional[int] = LimitQuery):
-    return await telcel_category("celulares", "Celulares", settings.telcel_query, limit)
-
-
-@app.get("/tablets")
-async def tablets(limit: Optional[int] = LimitQuery):
-    return await telcel_category("tablets", "Tablets", settings.telcel_tablets_query, limit)
-
-
-@app.get("/smartwatches")
-async def smartwatches(limit: Optional[int] = LimitQuery):
-    return await telcel_category("smartwatches", "Smartwatches", settings.telcel_smartwatches_query, limit)
