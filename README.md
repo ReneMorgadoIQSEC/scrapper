@@ -32,6 +32,9 @@ uvicorn app.main:app --port 8000 --reload
 | `GET /catalog/{segmento}?debug=true` | Añade las especificaciones y los puntajes de cada equipo evaluado |
 | `GET /catalog/{segmento}?limit=5` | Cambia cuántos equipos regresa (de 1 a 50) |
 | `GET /catalog` | Lista de segmentos disponibles |
+| `GET /celulares` | Primeros 10 productos de Telcel en celulares, sin enriquecer ni clasificar |
+| `GET /tablets` | Primeros 10 productos de Telcel en tablets, sin enriquecer |
+| `GET /smartwatches` | Primeros 10 productos de Telcel en "vida conectada", sin enriquecer |
 | `GET /health` | Verifica que el servicio esté arriba |
 | `GET /docs` | Documentación interactiva que FastAPI genera sola (Swagger) |
 

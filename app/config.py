@@ -28,6 +28,8 @@ def _env_list(name: str, default: str) -> Tuple[str, ...]:
 class Settings:
     telcel_base_url: str = os.getenv("TELCEL_BASE_URL", "https://www.telcel.com/occ/v2/telcel")
     telcel_query: str = os.getenv("TELCEL_QUERY", ":relevance:allCategories:telefonos-y-smartphones")
+    telcel_tablets_query: str = os.getenv("TELCEL_TABLETS_QUERY", ":relevance:allCategories:tablets")
+    telcel_smartwatches_query: str = os.getenv("TELCEL_SMARTWATCHES_QUERY", ":relevance:allCategories:vida_conectada")
     telcel_fields: str = os.getenv("TELCEL_FIELDS", TELCEL_FIELDS)
     telcel_page_size: int = _env_int("TELCEL_PAGE_SIZE", 50)
     telcel_page_ttl_seconds: int = _env_int("TELCEL_PAGE_TTL_SECONDS", 600)

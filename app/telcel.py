@@ -24,25 +24,30 @@ class TelcelPage:
     products: List[Dict[str, Any]]
 
 
+PageKey = Tuple[str, int, int]
+
+
 class TelcelClient:
     def __init__(self, session: AsyncSession, settings: Settings):
         self._session = session
         self._settings = settings
-        self._pages: Dict[int, Tuple[float, TelcelPage]] = {}
-        self._page_locks: Dict[int, asyncio.Lock] = {}
+        self._pages: Dict[PageKey, Tuple[float, TelcelPage]] = {}
+        self._page_locks: Dict[PageKey, asyncio.Lock] = {}
 
-    async def get_page(self, number: int) -> TelcelPage:
-        cached = self._pages.get(number)
+    async def get_page(self, number: int, query: Optional[str] = None, page_size: Optional[int] = None) -> TelcelPage:
+        """Página del buscador de Telcel; por defecto, la categoría de celulares que usan las gamas."""
+        key = (query or self._settings.telcel_query, page_size or self._settings.telcel_page_size, number)
+        cached = self._pages.get(key)
         if cached and time.monotonic() - cached[0] < self._settings.telcel_page_ttl_seconds:
             return cached[1]
 
-        lock = self._page_locks.setdefault(number, asyncio.Lock())
+        lock = self._page_locks.setdefault(key, asyncio.Lock())
         async with lock:
-            cached = self._pages.get(number)
+            cached = self._pages.get(key)
             if cached and time.monotonic() - cached[0] < self._settings.telcel_page_ttl_seconds:
                 return cached[1]
-            page = await self._fetch_page(number)
-            self._pages[number] = (time.monotonic(), page)
+            page = await self._fetch_page(*key)
+            self._pages[key] = (time.monotonic(), page)
             return page
 
     async def get_product_detail(self, code: str) -> Optional[Dict[str, Any]]:
@@ -59,11 +64,11 @@ class TelcelClient:
             return None
         return response.json()
 
-    async def _fetch_page(self, number: int) -> TelcelPage:
+    async def _fetch_page(self, query: str, page_size: int, number: int) -> TelcelPage:
         params = {
             "fields": self._settings.telcel_fields,
-            "query": self._settings.telcel_query,
-            "pageSize": self._settings.telcel_page_size,
+            "query": query,
+            "pageSize": page_size,
             "lang": "es_MX",
             "curr": "MXN",
             "currentPage": number,
@@ -87,6 +92,7 @@ class TelcelClient:
             products=payload.get("products") or [],
         )
         logger.info(
-            "Telcel página %s: %s productos en %.2fs", number, len(page.products), time.monotonic() - started
+            "Telcel %s página %s: %s productos en %.2fs",
+            query.rsplit(":", 1)[-1], number, len(page.products), time.monotonic() - started,
         )
         return page
