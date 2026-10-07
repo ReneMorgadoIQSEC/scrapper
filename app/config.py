@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Tuple
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,6 +18,10 @@ def _env_int(name: str, default: int) -> int:
 
 def _env_float(name: str, default: float) -> float:
     return float(os.getenv(name, default))
+
+
+def _env_list(name: str, default: str) -> Tuple[str, ...]:
+    return tuple(item.strip() for item in os.getenv(name, default).split(",") if item.strip())
 
 
 @dataclass(frozen=True)
@@ -41,6 +46,9 @@ class Settings:
     nanoreview_min_interval_seconds: float = _env_float("NANOREVIEW_MIN_INTERVAL_SECONDS", 0.5)
     scraper_cooldown_seconds: float = _env_float("SCRAPER_COOLDOWN_SECONDS", 60)
     source_backlog_limit: int = _env_int("SOURCE_BACKLOG_LIMIT", 4)
+
+    # Orígenes del frontend separados por coma; "*" permite cualquiera.
+    cors_origins: Tuple[str, ...] = _env_list("CORS_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500")
 
     http_timeout_seconds: float = _env_float("HTTP_TIMEOUT_SECONDS", 20)
     http_impersonate: str = os.getenv("HTTP_IMPERSONATE", "chrome")

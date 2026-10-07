@@ -1,13 +1,23 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional
 
+SPEC_FIELDS = ("chipset", "ram_options", "display_type", "refresh_rate_hz", "has_5g", "battery_mah", "gaming_features")
+# Campos sin los que la segmentación queda incompleta; gaming_features vacío es un resultado válido.
+REQUIRED_FIELDS = SPEC_FIELDS[:-1]
+
+
+def is_empty(value: Any) -> bool:
+    return value is None or value == {} or value == []
+
 
 @dataclass
 class DeviceSpecs:
     """Características técnicas de un dispositivo, independientes de la variante de almacenamiento."""
 
+    # "telcel", "gsmarena", "nanoreview", combinaciones como "telcel+gsmarena", o "none".
     source: str
     matched_name: Optional[str] = None
+    # Ficha técnica externa usada como respaldo; None si todo vino de Telcel.
     source_url: Optional[str] = None
     chipset: Optional[str] = None
     # Almacenamiento en GB (como texto para poder serializar a JSON) -> opciones de RAM física en GB.
@@ -19,9 +29,8 @@ class DeviceSpecs:
     gaming_features: List[str] = field(default_factory=list)
 
     @property
-    def is_scraped(self) -> bool:
-        """True si viene de una ficha técnica completa y no del respaldo parcial de Telcel."""
-        return self.source not in ("telcel", "none")
+    def missing_fields(self) -> List[str]:
+        return [name for name in REQUIRED_FIELDS if is_empty(getattr(self, name))]
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

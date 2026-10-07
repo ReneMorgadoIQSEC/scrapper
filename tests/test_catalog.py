@@ -20,17 +20,22 @@ def product(code, name, storage="128 GB"):
     return {"code": code, "marca": "ACME", "modelo": code, "nombreComercial": name, "capacidad": {"value": storage}}
 
 
+TELCEL_ENTRY_DETAIL = {"procesadorMarca": "Qualcomm", "procesadorModelo": "SM6225", "tecnologia": "4G"}
+
+
 class FakeTelcel:
-    def __init__(self, pages):
+    def __init__(self, pages, detail=None):
         self.pages = pages
         self.requested = []
+        # Por defecto Telcel responde, pero sin datos técnicos: todo sale de la fuente de respaldo.
+        self.detail = detail or {"marca": "ACME"}
 
     async def get_page(self, number):
         self.requested.append(number)
         return TelcelPage(number=number, total_pages=len(self.pages), products=self.pages[number])
 
     async def get_product_detail(self, code):
-        return {"procesadorMarca": "Qualcomm", "procesadorModelo": "SM6225", "tecnologia": "4G"}
+        return self.detail
 
 
 class FakeSource:
@@ -52,9 +57,9 @@ class FakeSource:
         return None
 
 
-def build(tmp_path, pages, source, **overrides):
+def build(tmp_path, pages, source, detail=None, **overrides):
     settings = replace(Settings(), specs_cache_path=tmp_path / "cache.json", **overrides)
-    telcel = FakeTelcel(pages)
+    telcel = FakeTelcel(pages, detail)
     enricher = SpecsEnricher([source], telcel, SpecsCache(settings.specs_cache_path), settings)
     return CatalogService(telcel, enricher, settings), telcel, enricher
 
@@ -108,9 +113,49 @@ def test_same_device_published_with_different_names_is_listed_once(tmp_path):
     assert [item["code"] for item in result.products] == ["a"]
 
 
-def test_rate_limited_source_falls_back_to_telcel_detail(tmp_path):
+def test_telcel_data_wins_and_fallback_only_fills_gaps(tmp_path):
+    item = product("a", "Flagship 1", "256 GB")
+    source = FakeSource({"Flagship": replace(FLAGSHIP, source_url="https://m.gsmarena.com/x.php")})
+    _, _, enricher = build(tmp_path, [[item]], source, detail=TELCEL_ENTRY_DETAIL)
+
+    specs = asyncio.run(enricher.get_specs(item))
+
+    assert specs.source == "telcel+fake"
+    assert specs.chipset == "Qualcomm SM6225"
+    assert specs.has_5g is False
+    assert specs.ram_options == FLAGSHIP.ram_options
+    assert specs.battery_mah == FLAGSHIP.battery_mah
+    assert specs.source_url == "https://m.gsmarena.com/x.php"
+
+
+def test_complete_telcel_detail_skips_fallback(tmp_path):
+    detail = {
+        **TELCEL_ENTRY_DETAIL,
+        "capacidad": {"unit": "GB", "value": "128"},
+        "description": "Pantalla IPS LCD de 90Hz, RAM de 4 GB y batería de 5000 mAh.",
+    }
+    item = product("a", "Entry 1")
+    source = FakeSource({"Entry": FLAGSHIP})
+    _, _, enricher = build(tmp_path, [[item]], source, detail=detail)
+
+    specs = asyncio.run(enricher.get_specs(item))
+
+    assert specs.source == "telcel"
+    assert specs.ram_options == {"128": [4.0]}
+    assert source.calls == []
+
+
+def test_unclassifiable_telcel_chipset_is_replaced_by_fallback(tmp_path):
+    item = product("a", "Flagship 1", "256 GB")
+    detail = {"procesadorMarca": "Mediatek", "procesadorModelo": "MTK-25M+", "tecnologia": "5G"}
+    _, _, enricher = build(tmp_path, [[item]], FakeSource({"Flagship": FLAGSHIP}), detail=detail)
+
+    assert asyncio.run(enricher.get_specs(item)).chipset == FLAGSHIP.chipset
+
+
+def test_rate_limited_fallback_keeps_telcel_detail(tmp_path):
     pages = [[product("a", "Entry 1")]]
-    catalog, _, enricher = build(tmp_path, pages, FakeSource(rate_limited=True))
+    catalog, _, enricher = build(tmp_path, pages, FakeSource(rate_limited=True), detail=TELCEL_ENTRY_DETAIL)
 
     specs = asyncio.run(enricher.get_specs(pages[0][0]))
 
@@ -119,7 +164,7 @@ def test_rate_limited_source_falls_back_to_telcel_detail(tmp_path):
     assert asyncio.run(catalog.get_segment(Segment.BAJA)).products == pages[0]
 
 
-def test_stale_scraped_specs_are_not_replaced_by_partial_fallback(tmp_path):
+def test_stale_complete_specs_are_not_replaced_by_partial_result(tmp_path):
     item = product("a", "Flagship 1", "256 GB")
     source = FakeSource({"Flagship": FLAGSHIP})
     _, _, enricher = build(tmp_path, [[item]], source, specs_ttl_found_seconds=-1)

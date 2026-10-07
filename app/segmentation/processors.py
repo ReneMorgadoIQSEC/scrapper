@@ -20,11 +20,13 @@ class ProcessorInfo:
 
 UNKNOWN_PROCESSOR = ProcessorInfo(family="desconocido", tier=None)
 
-_SNAPDRAGON_MODERN = re.compile(r"snapdragon\s*(\d)\s*(s|\+)?\s*(?:gen\s*\d+|elite)")
+_SNAPDRAGON_MODERN = re.compile(r"snapdragon\s*(\d)\s*(s|\+)?\s*(?:4g\s*)?(?:gen\s*\d+|elite)")
 _SNAPDRAGON_LEGACY = re.compile(r"(?:snapdragon|sdm)\s*(\d{3})")
 _QUALCOMM_PART = re.compile(r"\bsm(\d)(\d{3})")
-_DIMENSITY = re.compile(r"dimensity\s*(\d{3,4})")
+_DIMENSITY = re.compile(r"dimensity\s*d?(\d{3,4})")
+_MEDIATEK_PART = re.compile(r"\bmt(6\d{3})")
 _EXYNOS = re.compile(r"exynos\s*(\d{3,4})")
+_SAMSUNG_PART = re.compile(r"\bs5e(\d{4})")
 _KIRIN = re.compile(r"kirin\s*(\d{3,4})")
 _APPLE = re.compile(r"(?:apple|chip)\s+a(\d{1,2})\b|\ba(\d{2})\s+(?:bionic|pro|fusion)\b")
 _UNISOC = re.compile(r"unisoc|spreadtrum|\btiger\s*t\d|\bt6\d\d\b")
@@ -33,6 +35,13 @@ _UNISOC = re.compile(r"unisoc|spreadtrum|\btiger\s*t\d|\bt6\d\d\b")
 _QUALCOMM_ENTRY_PARTS = {"6115", "6125", "6225"}
 # Números de parte de las variantes Snapdragon 7+ (7+ Gen 2 y 7+ Gen 3).
 _QUALCOMM_GAMING_7_PARTS = {"7475", "7675"}
+# Telcel a veces reporta solo el número de parte; cada uno agrupa chips de la misma gama (MT6878 = 7300/7360/7400).
+_MEDIATEK_DIMENSITY_PARTS = {
+    "6835": 6300, "6878": 7300, "6886": 7200, "6897": 8300, "6899": 8400,
+    "6985": 9200, "6989": 9300, "6991": 9400, "6993": 9500,
+}
+# Números de parte Samsung fuera de los patrones S5E88x5 (Exynos 1x80) y S5E99x5 (Exynos 2x00).
+_SAMSUNG_PART_EXYNOS = {"8535": "1330", "3830": "850"}
 
 
 def _snapdragon_modern(text: str) -> Optional[ProcessorInfo]:
@@ -46,7 +55,8 @@ def _snapdragon_modern(text: str) -> Optional[ProcessorInfo]:
     if series == 7:
         return ProcessorInfo(family, Tier.MID, gaming=variant == "+")
     if series == 6:
-        return ProcessorInfo(family, Tier.MID)
+        # Las variantes 4G (6s 4G Gen 1/Gen 2, SM6225) son reediciones del Snapdragon 680/685.
+        return ProcessorInfo(family, Tier.ENTRY if re.search(r"\b4g\b", text) else Tier.MID)
     return ProcessorInfo(family, Tier.ENTRY)
 
 
@@ -78,11 +88,18 @@ def _qualcomm_part(text: str) -> Optional[ProcessorInfo]:
     return ProcessorInfo(family, Tier.ENTRY)
 
 
-def _dimensity(text: str) -> Optional[ProcessorInfo]:
+def _dimensity_number(text: str) -> Optional[int]:
     match = _DIMENSITY.search(text)
-    if not match:
+    if match:
+        return int(match.group(1))
+    part = _MEDIATEK_PART.search(text)
+    return _MEDIATEK_DIMENSITY_PARTS.get(part.group(1)) if part else None
+
+
+def _dimensity(text: str) -> Optional[ProcessorInfo]:
+    number = _dimensity_number(text)
+    if number is None:
         return None
-    number = int(match.group(1))
     family = f"Dimensity {number}"
     if number >= 9000:
         return ProcessorInfo(family, Tier.HIGH, gaming=True)
@@ -96,11 +113,27 @@ def _dimensity(text: str) -> Optional[ProcessorInfo]:
     return ProcessorInfo(family, Tier.MID if number >= 900 else Tier.ENTRY)
 
 
-def _exynos(text: str) -> Optional[ProcessorInfo]:
+def _exynos_number(text: str) -> Optional[str]:
     match = _EXYNOS.search(text)
-    if not match:
+    if match:
+        return match.group(1)
+    part = _SAMSUNG_PART.search(text)
+    if not part:
         return None
-    number = match.group(1)
+    code = part.group(1)
+    if code in _SAMSUNG_PART_EXYNOS:
+        return _SAMSUNG_PART_EXYNOS[code]
+    if code.startswith("88") and code.endswith("5"):
+        return f"1{code[2]}80"
+    if code.startswith("99") and code.endswith("5"):
+        return f"2{code[2]}00"
+    return None
+
+
+def _exynos(text: str) -> Optional[ProcessorInfo]:
+    number = _exynos_number(text)
+    if number is None:
+        return None
     family = f"Exynos {number}"
     if (len(number) == 4 and number[0] in "29") or (len(number) == 3 and number[0] == "9"):
         return ProcessorInfo(family, Tier.HIGH)
@@ -137,7 +170,13 @@ def _tensor(text: str) -> Optional[ProcessorInfo]:
 
 
 def _helio(text: str) -> Optional[ProcessorInfo]:
-    return ProcessorInfo("MediaTek Helio", Tier.ENTRY) if "helio" in text or re.search(r"\bmt6\d{3}", text) else None
+    # Telcel a veces omite "Helio": "MediaTek G100-Ultra".
+    is_helio = (
+        "helio" in text
+        or re.search(r"\bmt6\d{3}", text)
+        or ("mediatek" in text and re.search(r"\bg\d{2,3}\b", text))
+    )
+    return ProcessorInfo("MediaTek Helio", Tier.ENTRY) if is_helio else None
 
 
 def _unisoc(text: str) -> Optional[ProcessorInfo]:
@@ -162,7 +201,7 @@ _PARSERS: Sequence[Callable[[str], Optional[ProcessorInfo]]] = (
 def classify_processor(chipset: Optional[str]) -> ProcessorInfo:
     if not chipset:
         return UNKNOWN_PROCESSOR
-    text = chipset.lower().replace(" plus", "+")
+    text = chipset.lower().replace(" plus", "+").replace("®", "").replace("™", "")
     for parser in _PARSERS:
         info = parser(text)
         if info:

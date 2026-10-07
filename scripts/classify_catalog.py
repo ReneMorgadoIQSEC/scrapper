@@ -39,7 +39,7 @@ async def main(pages):
                 tier = profile.processor.tier.value if profile.processor.tier else None
                 print(" | ".join([
                     _fmt(product_display_name(product), 30),
-                    _fmt(specs.source, 10),
+                    _fmt(specs.source, 17),
                     _fmt(specs.matched_name, 26),
                     _fmt(profile.processor.family, 22),
                     _fmt(tier, 7),

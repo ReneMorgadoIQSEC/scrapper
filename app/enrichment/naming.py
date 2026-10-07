@@ -21,6 +21,10 @@ def brand_for_search(brand: str) -> str:
     return BRAND_ALIASES.get(brand.upper(), brand.lower())
 
 
+def is_bundle(name: str) -> bool:
+    return bool(_BUNDLE_SEPARATOR.search(name or ""))
+
+
 def clean_model_name(name: str) -> str:
     """Quita almacenamiento, RAM y accesorios de regalo del nombre comercial de Telcel."""
     name = _BUNDLE_SEPARATOR.split(name, maxsplit=1)[0]

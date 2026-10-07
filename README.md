@@ -5,7 +5,6 @@ El entry point es `app/main.py`: ahí está la instancia de FastAPI llamada `app
 El entorno virtual `.venv` ya está creado y con las dependencias instaladas, así que basta con:
 
 ```bash
-cd /Users/renemorgado/Desktop/LandingsService
 source .venv/bin/activate
 uvicorn app.main:app --port 8000
 ```
@@ -47,14 +46,21 @@ curl http://localhost:8000/catalog/gamer
 En `app/main.py`, la función `lifespan` hace esto:
 
 1. Llama a `build_container()` (en `app/container.py`), que arma todas las piezas:
-   - el cliente de Telcel;
-   - los scrapers de GSMArena y nanoreview, cada uno con su control de ritmo de peticiones;
+   - el cliente de Telcel, que también es la fuente principal de especificaciones;
+   - los scrapers de GSMArena y nanoreview (solo de respaldo), cada uno con su control de ritmo de peticiones;
    - la caché en disco;
    - el servicio de catálogo.
 2. Lanza en segundo plano la precarga de las primeras 2 páginas de Telcel. El servidor ya responde mientras tanto.
 3. Al apagarse, guarda la caché en `data/specs_cache.json` y cierra las conexiones.
 
 El recorrido de una petición es: `main.py` → `CatalogService.get_segment()` (`catalog.py`) → `SpecsEnricher` (`enrichment/service.py`) → `classify()` (`segmentation/rules.py`).
+
+## De dónde salen las especificaciones
+
+1. **Telcel (fuente principal):** del detalle de producto se toman el procesador y la tecnología (5G), y de la descripción comercial la pantalla, los Hz, los mAh y la RAM cuando aparecen sin contradicciones (`enrichment/telcel_specs.py`).
+2. **GSMArena y nanoreview (respaldo):** solo se consultan si a Telcel le falta algún dato que usa la segmentación, y únicamente rellenan esos huecos; lo que reporta Telcel nunca se sobrescribe. La excepción es un procesador que Telcel reporta con un código interno imposible de clasificar (p. ej. `MTK-25M+`).
+
+El campo `specsSource` de `?debug=true` indica el origen: `telcel`, `telcel+gsmarena`, `telcel+nanoreview`, o solo la fuente externa si el detalle de Telcel no respondió.
 
 ## Configuración
 
@@ -66,6 +72,7 @@ CATALOG_SIZE=12                           # equipos por respuesta (default 10)
 CATALOG_MAX_PAGES=6                       # máximo de páginas de Telcel a recorrer
 GSMARENA_MIN_INTERVAL_SECONDS=0.5         # ritmo del scraping (~2 peticiones/s)
 SPECS_CACHE_PATH=/ruta/cache.json         # dónde se guarda la caché
+CORS_ORIGINS=https://mi-landing.com       # orígenes del frontend, separados por coma (default: localhost:5500)
 ```
 
 ## Otros comandos
@@ -79,4 +86,4 @@ python -m pytest -q
 python -m scripts.classify_catalog 0 1
 ```
 
-La primera vez que se consulta un equipo nuevo hay que hacer scraping, y una página completa tarda unos 25–30 s. Después queda en caché 30 días y las respuestas bajan a milisegundos. Si borras `data/specs_cache.json`, la siguiente carga vuelve a ser lenta.
+La primera vez que se consulta un equipo nuevo hay que consultar Telcel y, casi siempre, el respaldo para completar datos; una página completa tarda unos 25–30 s. Después queda en caché 30 días y las respuestas bajan a milisegundos. Si borras `data/specs_cache.json`, la siguiente carga vuelve a ser lenta.

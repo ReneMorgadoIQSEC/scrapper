@@ -42,7 +42,7 @@ class _Selection:
 def _physical_device_key(product: Dict[str, Any], specs: DeviceSpecs, profile: DeviceProfile) -> str:
     # Telcel publica a veces el mismo equipo con nombres distintos ("moto razr 50 ultra" / "razr 50 Ultra");
     # si ambos apuntan a la misma ficha técnica y capacidad, es el mismo producto para el cliente.
-    identity = specs.source_url if specs.is_scraped and specs.source_url else device_key(product)
+    identity = specs.source_url or device_key(product)
     return f"{identity}|{profile.storage_gb}"
 
 

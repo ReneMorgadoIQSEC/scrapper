@@ -44,6 +44,15 @@ from app.segmentation.processors import Tier, classify_processor
         ("Kirin 9020 (7 nm)", Tier.HIGH, False),
         ("Kirin 8000 (7 nm)", Tier.MID, False),
         ("Kirin 710A", Tier.ENTRY, False),
+        # Nomenclatura del detalle de producto de Telcel.
+        ("SEC S5E8845", Tier.MID, False),
+        ("Exynos S5E9945", Tier.HIGH, False),
+        ("Mediatek MTK-24M (MT6878)", Tier.MID, False),
+        ("Mediatek - Dimensity D7060", Tier.MID, False),
+        ("MediaTek G100-Ultra", Tier.ENTRY, False),
+        ("Qualcomm™ SM8850, Snapdragon® 8 Elite Gen 5,", Tier.HIGH, True),
+        ("Qualcomm Snapdragon 6s 4G Gen 2", Tier.ENTRY, False),
+        ("Qualcomm Snapdragon 6s Gen 2 4G (SM6225-AF)", Tier.ENTRY, False),
     ],
 )
 def test_classify_processor(chipset, tier, gaming):

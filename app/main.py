@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.container import build_container
@@ -36,6 +37,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Landings Service", version="1.0.0", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=list(settings.cors_origins),
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 
 def resolve_segment(slug: str) -> Segment:
