@@ -87,3 +87,24 @@ python -m scripts.classify_catalog 0 1
 ```
 
 La primera vez que se consulta un equipo nuevo hay que consultar Telcel y, casi siempre, el respaldo para completar datos; una página completa tarda unos 25–30 s. Después queda en caché 30 días y las respuestas bajan a milisegundos. Si borras `data/specs_cache.json`, la siguiente carga vuelve a ser lenta.
+
+## Despliegue en Railway
+
+Railway detecta el `Dockerfile` y lo usa para construir: Python 3.12 y uvicorn escuchando en el `PORT` que asigna Railway.
+
+1. **Crear el servicio:** New Project → Deploy from GitHub repo → elegir este repositorio.
+2. **Variables** (pestaña Variables del servicio):
+   - `CORS_ORIGINS`: dominio(s) de la landing, p. ej. `https://mi-landing.com`. Sin esto el navegador bloquea las peticiones.
+   - Opcionales: las de la sección Configuración (`CATALOG_SIZE`, `WARMUP_PAGES`...).
+3. **Volumen para la caché** (recomendado): clic derecho sobre el servicio → Attach Volume → mount path `/data`. El `Dockerfile` ya apunta `SPECS_CACHE_PATH` a `/data/specs_cache.json`. Sin volumen funciona igual, pero cada despliegue empieza con la caché vacía y vuelve a consultar GSMArena y nanoreview.
+4. **Healthcheck:** Settings → Deploy → Healthcheck Path = `/health`.
+5. **Dominio público:** Settings → Networking → Generate Domain. La landing consume `https://<dominio>.up.railway.app/catalog/{segmento}`.
+
+Mantén una sola réplica: la caché, los límites de peticiones a los scrapers y la deduplicación viven en memoria del proceso.
+
+Para probar la imagen localmente:
+
+```bash
+docker build -t landings-service .
+docker run --rm -p 8000:8000 -v "$PWD/data:/data" landings-service
+```
